@@ -1,0 +1,23 @@
+services:
+  # 1. PostgreSQL Container (SQL)
+  postgres-db:
+    image: postgres:15-alpine
+    container_name: ecommerce-postgres
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: ecommercedb
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: devpassword
+    volumes:
+      - postgres_data_v2:/var/lib/postgresql/data
+
+  # 2. Redis Container (NoSQL Cache)
+  redis-cache:
+    image: redis:7-alpine
+    container_name: ecommerce-redis
+    ports:
+      - "6379:6379"
+
+volumes:
+  postgres_data_v2:
