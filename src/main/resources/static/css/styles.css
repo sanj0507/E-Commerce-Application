@@ -948,3 +948,184 @@ select.form-input {
     background: rgba(239, 68, 68, 0.15);
 }
 
+/* Tracking Stepper Styles */
+.tracking-stepper {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    position: relative;
+    margin: 2rem 0;
+    padding: 0;
+}
+
+.tracking-stepper::before {
+    content: '';
+    position: absolute;
+    top: 24px;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background-color: var(--border-color);
+    z-index: 1;
+}
+
+.stepper-progress-line {
+    position: absolute;
+    top: 24px;
+    left: 0;
+    height: 4px;
+    background: var(--primary-gradient);
+    z-index: 2;
+    transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.step-node {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    z-index: 3;
+    position: relative;
+    flex: 1;
+}
+
+.step-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background-color: var(--bg-card);
+    border: 3px solid var(--border-color);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    color: var(--text-secondary);
+    transition: var(--transition-smooth);
+    box-shadow: var(--shadow-premium);
+}
+
+.step-node.completed .step-icon {
+    background: var(--primary-gradient);
+    border-color: var(--accent-color);
+    color: #ffffff;
+}
+
+.step-node.active .step-icon {
+    border-color: var(--accent-color);
+    color: var(--accent-color);
+    background-color: var(--bg-card);
+    box-shadow: 0 0 0 4px rgba(25, 135, 84, 0.15);
+    transform: scale(1.1);
+}
+
+.step-label {
+    margin-top: 0.75rem;
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    text-align: center;
+    transition: var(--transition-smooth);
+    max-width: 120px;
+    line-height: 1.2;
+}
+
+.step-node.active .step-label {
+    color: var(--text-primary);
+    font-weight: 700;
+}
+
+.step-node.completed .step-label {
+    color: var(--text-primary);
+}
+
+/* Order tracking wrapper */
+.order-tracking-wrapper {
+    margin-top: 1.5rem;
+    padding: 1.5rem;
+    background: #f8fafc;
+    border-radius: 16px;
+    border: 1px solid var(--border-color);
+    animation: slideDown 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Status Badges */
+.status-badge.placed {
+    background-color: rgba(59, 130, 246, 0.1);
+    color: #3b82f6;
+    border: 1px solid rgba(59, 130, 246, 0.2);
+}
+
+.status-badge.ready {
+    background-color: rgba(139, 92, 246, 0.1);
+    color: #8b5cf6;
+    border: 1px solid rgba(139, 92, 246, 0.2);
+}
+
+.status-badge.picked {
+    background-color: rgba(245, 158, 11, 0.1);
+    color: #f59e0b;
+    border: 1px solid rgba(245, 158, 11, 0.2);
+}
+
+.status-badge.delivered {
+    background-color: rgba(16, 185, 129, 0.1);
+    color: var(--success-color);
+    border: 1px solid rgba(16, 185, 129, 0.2);
+}
+
+/* Track Button */
+.btn-track {
+    background: transparent;
+    color: var(--accent-color);
+    border: 1px solid var(--accent-color);
+    border-radius: 8px;
+    padding: 0.4rem 1rem;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: var(--transition-smooth);
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.btn-track:hover {
+    background-color: rgba(25, 135, 84, 0.08);
+}
+
+.btn-track svg {
+    transition: transform 0.3s;
+}
+
+.btn-track.active svg {
+    transform: rotate(180deg);
+}
+
+/* Admin status controller select */
+.admin-status-select {
+    padding: 0.4rem 0.8rem;
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+    font-size: 0.85rem;
+    font-weight: 600;
+    background-color: #ffffff;
+    cursor: pointer;
+    outline: none;
+    transition: var(--transition-smooth);
+}
+
+.admin-status-select:focus {
+    border-color: var(--accent-color);
+}
+
+

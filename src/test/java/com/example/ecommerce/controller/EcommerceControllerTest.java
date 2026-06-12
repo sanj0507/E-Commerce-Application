@@ -24,7 +24,7 @@ import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -119,7 +119,7 @@ class EcommerceControllerTest {
 
     @Test
     void testCheckout_Success() throws Exception {
-        Order order = new Order("Aarav", "aarav@email.com", "New Delhi", "Verdant Pay", new BigDecimal("150.00"), LocalDateTime.now(), "PAID");
+        Order order = new Order("Aarav", "aarav@email.com", "New Delhi", "Verdant Pay", new BigDecimal("150.00"), LocalDateTime.now(), "ORDER_PLACED");
         order.setId(1L);
 
         when(ecommerceService.checkout(eq("cartId"), eq("Aarav"), eq("aarav@email.com"), eq("New Delhi"), eq("Verdant Pay")))
@@ -147,5 +147,35 @@ class EcommerceControllerTest {
                         .content(jsonPayload))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.message", is("Stock insufficient")));
+    }
+
+    @Test
+    void testUpdateOrderStatus_Success() throws Exception {
+        Order order = new Order("Aarav", "aarav@email.com", "New Delhi", "Verdant Pay", new BigDecimal("150.00"), LocalDateTime.now(), "ORDER_READY");
+        order.setId(1L);
+
+        // Mock security context since updateOrderStatus checks authentication
+        org.springframework.security.core.Authentication auth = mock(org.springframework.security.core.Authentication.class);
+        when(auth.isAuthenticated()).thenReturn(true);
+        when(auth.getPrincipal()).thenReturn("admin@email.com");
+        
+        // Mock ROLE_ADMIN authority
+        org.springframework.security.core.authority.SimpleGrantedAuthority authority = new org.springframework.security.core.authority.SimpleGrantedAuthority("ROLE_ADMIN");
+        doReturn(Arrays.asList(authority)).when(auth).getAuthorities();
+
+        org.springframework.security.core.context.SecurityContext securityContext = mock(org.springframework.security.core.context.SecurityContext.class);
+        when(securityContext.getAuthentication()).thenReturn(auth);
+        org.springframework.security.core.context.SecurityContextHolder.setContext(securityContext);
+
+        when(ecommerceService.updateOrderStatus(eq(1L), eq("ORDER_READY"))).thenReturn(order);
+
+        mockMvc.perform(put("/api/ecommerce/orders/1/status")
+                        .param("status", "ORDER_READY"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id", is(1)))
+                .andExpect(jsonPath("$.status", is("ORDER_READY")));
+                
+        // Clear security context after test
+        org.springframework.security.core.context.SecurityContextHolder.clearContext();
     }
 }

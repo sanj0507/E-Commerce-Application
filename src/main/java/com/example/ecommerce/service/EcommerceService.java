@@ -121,7 +121,7 @@ public class EcommerceService {
             throw new RuntimeException("Cart contains no items.");
         }
 
-        Order order = new Order(customerName, customerEmail, shippingAddress, paymentMethod, BigDecimal.ZERO, LocalDateTime.now(), "PAID");
+        Order order = new Order(customerName, customerEmail, shippingAddress, paymentMethod, BigDecimal.ZERO, LocalDateTime.now(), "ORDER_PLACED");
         BigDecimal totalAmount = BigDecimal.ZERO;
 
         for (java.util.Map.Entry<Long, Integer> entry : cart.getItems().entrySet()) {
@@ -163,5 +163,13 @@ public class EcommerceService {
 
     public Optional<Order> getOrderById(Long id) {
         return orderRepository.findById(id);
+    }
+
+    @Transactional
+    public Order updateOrderStatus(Long id, String status) {
+        Order order = orderRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Order not found with ID: " + id));
+        order.setStatus(status);
+        return orderRepository.save(order);
     }
 }

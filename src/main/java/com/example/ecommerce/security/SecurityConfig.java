@@ -55,6 +55,7 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.DELETE, "/api/ecommerce/products/**").hasAuthority("ROLE_ADMIN")
                 // Order endpoints
                 .requestMatchers(HttpMethod.POST, "/api/ecommerce/orders/checkout/**").hasAnyAuthority("ROLE_USER", "ROLE_ADMIN")
+                .requestMatchers(HttpMethod.PUT, "/api/ecommerce/orders/**").hasAuthority("ROLE_ADMIN")
                 // Cart endpoints
                 .requestMatchers("/api/ecommerce/cart/**").permitAll()
                 // Fallback for other ecommerce endpoints

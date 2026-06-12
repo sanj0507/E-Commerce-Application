@@ -12,6 +12,7 @@ import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -132,7 +133,7 @@ class EcommerceServiceTest {
 
         assertNotNull(order);
         assertEquals("Aarav", order.getCustomerName());
-        assertEquals("PAID", order.getStatus());
+        assertEquals("ORDER_PLACED", order.getStatus());
         // Price: 10 * 2 + 50 * 3 = 170.00
         assertEquals(new BigDecimal("170.00"), order.getTotalAmount());
         assertEquals(8, p1.getStock()); // stock decremented
@@ -150,5 +151,19 @@ class EcommerceServiceTest {
         assertThrows(RuntimeException.class, () -> 
             ecommerceService.checkout("cartId", "Aarav", "aarav@email.com", "New Delhi", "Verdant Pay")
         );
+    }
+
+    @Test
+    void testUpdateOrderStatus_Success() {
+        Order order = new Order("Aarav", "aarav@email.com", "New Delhi", "Verdant Pay", new BigDecimal("170.00"), LocalDateTime.now(), "ORDER_PLACED");
+        order.setId(1L);
+
+        when(orderRepository.findById(1L)).thenReturn(Optional.of(order));
+        when(orderRepository.save(any(Order.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        Order updated = ecommerceService.updateOrderStatus(1L, "ORDER_READY");
+        assertNotNull(updated);
+        assertEquals("ORDER_READY", updated.getStatus());
+        verify(orderRepository, times(1)).save(order);
     }
 }

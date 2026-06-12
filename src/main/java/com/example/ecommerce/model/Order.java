@@ -20,7 +20,7 @@ public class Order {
     private String paymentMethod;
     private BigDecimal totalAmount;
     private LocalDateTime orderDate;
-    private String status; // e.g. PENDING, PAID, SHIPPED, DELIVERED
+    private String status; // e.g. ORDER_PLACED, ORDER_READY, PICKED_BY_DELIVERY_PARTNER, DELIVERED
 
     @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
     private List<OrderItem> items = new ArrayList<>();

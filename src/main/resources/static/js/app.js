@@ -473,6 +473,7 @@ async function addProductToCart(productId) {
 
 // 4. Cart View Details
 async function loadCartDetails() {
+    renderCheckoutStepper('checkout-stepper-cart', 1);
     const loader = document.getElementById('cart-loading');
     const emptyDiv = document.getElementById('cart-empty');
     const itemsList = document.getElementById('cart-items-list');
@@ -608,6 +609,7 @@ async function clearCart() {
 
 // 8. Load Checkout Page Details
 async function loadCheckoutPreview() {
+    renderCheckoutStepper('checkout-stepper-checkout', 2);
     const listDiv = document.getElementById('checkout-preview-list');
     listDiv.innerHTML = '';
     
@@ -657,6 +659,7 @@ async function handleCheckout(event) {
     const submitBtn = document.getElementById('btn-submit-order');
     submitBtn.disabled = true;
     submitBtn.innerText = 'Processing simulated payment...';
+    renderCheckoutStepper('checkout-stepper-checkout', 3);
 
     const name = document.getElementById('checkout-name').value;
     const email = document.getElementById('checkout-email').value;
@@ -693,6 +696,13 @@ async function handleCheckout(event) {
             document.getElementById('receipt-address').innerText = order.shippingAddress;
             document.getElementById('receipt-payment').innerText = order.paymentMethod;
             document.getElementById('receipt-total').innerText = formatCurrency(order.totalAmount);
+
+            const badge = document.getElementById('receipt-status-badge');
+            if (badge) {
+                badge.className = `status-badge ${getStatusBadgeClass(order.status)}`;
+                badge.innerText = formatStatusText(order.status);
+            }
+            renderOrderTrackingStepper('order-tracking-confirmation', order.status);
 
             // Re-fetch cart count (which should be 0)
             fetchCartCount();
@@ -766,15 +776,22 @@ async function loadOrdersHistory() {
                         </div>
                         <div class="order-price-status">
                             <div style="font-weight:800; font-size:1.15rem; margin-bottom:0.25rem;">${formatCurrency(order.totalAmount)}</div>
-                            <span class="status-badge paid">${order.status}</span>
+                            <span class="status-badge ${getStatusBadgeClass(order.status)}">${formatStatusText(order.status)}</span>
                         </div>
                     </div>
                     <div>
                         <div style="font-size:0.85rem; font-weight:600; color:var(--text-secondary); margin-bottom:0.75rem; text-transform:uppercase; letter-spacing:0.5px;">Items Ordered</div>
                         ${itemsHtml}
-                        <div style="margin-top: 1rem; padding-top: 1rem; border-top:1px dashed var(--border-color); font-size:0.85rem; color:var(--text-secondary);">
-                            <strong>Shipping Details:</strong> ${order.customerName} | ${order.customerEmail} | ${order.shippingAddress}
+                        <div style="margin-top: 1rem; padding-top: 1rem; border-top:1px dashed var(--border-color); display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap: 1rem;">
+                            <div style="font-size:0.85rem; color:var(--text-secondary);">
+                                <strong>Shipping Details:</strong> ${order.customerName} | ${order.customerEmail} | ${order.shippingAddress}
+                            </div>
+                            <button class="btn-track" onclick="toggleOrderTracking(${order.id}, '${order.status}', this)">
+                                <span>Track Order</span>
+                                <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
+                            </button>
                         </div>
+                        <div id="tracking-panel-${order.id}" style="display:none;"></div>
                     </div>
                 `;
                 listDiv.appendChild(card);
@@ -869,7 +886,17 @@ async function loadAdminOrders() {
                     <td style="font-size:0.85rem; color:var(--text-secondary);">${order.customerEmail}</td>
                     <td style="font-size:0.85rem; color:var(--text-secondary); max-width:200px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${order.shippingAddress}">${order.shippingAddress}</td>
                     <td style="font-weight:700;">${formatCurrency(order.totalAmount)}</td>
-                    <td><span class="status-badge paid">${order.status}</span></td>
+                    <td>
+                        <div style="display:flex; flex-direction:column; gap:0.5rem; align-items:flex-start;">
+                            <span class="status-badge ${getStatusBadgeClass(order.status)}">${formatStatusText(order.status)}</span>
+                            <select class="admin-status-select" onchange="changeOrderStatus(${order.id}, this.value)">
+                                <option value="ORDER_PLACED" ${order.status === 'ORDER_PLACED' ? 'selected' : ''}>Order Placed</option>
+                                <option value="ORDER_READY" ${order.status === 'ORDER_READY' ? 'selected' : ''}>Order Ready</option>
+                                <option value="PICKED_BY_DELIVERY_PARTNER" ${order.status === 'PICKED_BY_DELIVERY_PARTNER' ? 'selected' : ''}>Picked by Delivery Partner</option>
+                                <option value="DELIVERED" ${order.status === 'DELIVERED' ? 'selected' : ''}>Delivered</option>
+                            </select>
+                        </div>
+                    </td>
                 `;
                 tbody.appendChild(tr);
             });
@@ -978,5 +1005,203 @@ async function deleteProduct(productId) {
         }
     } catch (err) {
         console.error('Error deleting product:', err);
+    }
+}
+
+// --- PRODUCT TRACKING LIFE CYCLE HELPERS ---
+
+function getStatusBadgeClass(status) {
+    if (!status) return 'placed';
+    switch (status.toUpperCase()) {
+        case 'ORDER_PLACED': return 'placed';
+        case 'ORDER_READY': return 'ready';
+        case 'PICKED_BY_DELIVERY_PARTNER': return 'picked';
+        case 'DELIVERED': return 'delivered';
+        default: return 'placed';
+    }
+}
+
+function formatStatusText(status) {
+    if (!status) return 'Order Placed';
+    switch (status.toUpperCase()) {
+        case 'ORDER_PLACED': return 'Order Placed';
+        case 'ORDER_READY': return 'Order Ready';
+        case 'PICKED_BY_DELIVERY_PARTNER': return 'Picked by Delivery Partner';
+        case 'DELIVERED': return 'Delivered';
+        default: return status;
+    }
+}
+
+function renderCheckoutStepper(containerId, activeStep) {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+
+    const steps = [
+        { id: 1, label: 'Add to Cart' },
+        { id: 2, label: 'Give Address' },
+        { id: 3, label: 'Confirm Payment' }
+    ];
+
+    let progressWidth = '0%';
+    if (activeStep === 2) progressWidth = '50%';
+    if (activeStep === 3) progressWidth = '100%';
+
+    let stepsHtml = steps.map(step => {
+        let statusClass = '';
+        if (step.id < activeStep) {
+            statusClass = 'completed';
+        } else if (step.id === activeStep) {
+            statusClass = 'active';
+        }
+        
+        const iconContent = step.id < activeStep ? '✓' : step.id;
+        return `
+            <div class="step-node ${statusClass}">
+                <div class="step-icon">${iconContent}</div>
+                <div class="step-label">${step.label}</div>
+            </div>
+        `;
+    }).join('');
+
+    container.innerHTML = `
+        <div class="tracking-stepper">
+            <div class="stepper-progress-line" style="width: ${progressWidth}"></div>
+            ${stepsHtml}
+        </div>
+    `;
+}
+
+function renderOrderTrackingStepper(containerOrId, status) {
+    const container = typeof containerOrId === 'string' ? document.getElementById(containerOrId) : containerOrId;
+    if (!container) return;
+
+    const steps = [
+        { key: 'ORDER_PLACED', label: 'Order Placed' },
+        { key: 'ORDER_READY', label: 'Order Ready' },
+        { key: 'PICKED_BY_DELIVERY_PARTNER', label: 'Order Picked by Partner' },
+        { key: 'DELIVERED', label: 'Order Delivered' }
+    ];
+
+    const statusLevels = {
+        'ORDER_PLACED': 1,
+        'ORDER_READY': 2,
+        'PICKED_BY_DELIVERY_PARTNER': 3,
+        'DELIVERED': 4
+    };
+
+    const currentLevel = statusLevels[status] || 1;
+    let progressPercent = '0%';
+    if (currentLevel === 2) progressPercent = '33.3%';
+    if (currentLevel === 3) progressPercent = '66.6%';
+    if (currentLevel === 4) progressPercent = '100%';
+
+    let stepsHtml = steps.map((step, idx) => {
+        const stepLevel = idx + 1;
+        let statusClass = '';
+        let iconContent = stepLevel;
+
+        if (stepLevel < currentLevel) {
+            statusClass = 'completed';
+            iconContent = '✓';
+        } else if (stepLevel === currentLevel) {
+            statusClass = 'active';
+        }
+
+        return `
+            <div class="step-node ${statusClass}">
+                <div class="step-icon">${iconContent}</div>
+                <div class="step-label">${step.label}</div>
+            </div>
+        `;
+    }).join('');
+
+    container.innerHTML = `
+        <h4 style="font-size: 0.95rem; font-weight:700; margin-bottom:1rem; color:var(--text-primary);">Order Delivery Progress</h4>
+        <div class="tracking-stepper" style="margin-top: 1rem;">
+            <div class="stepper-progress-line" style="width: ${progressPercent}"></div>
+            ${stepsHtml}
+        </div>
+    `;
+}
+
+function toggleOrderTracking(orderId, status, btn) {
+    const panel = document.getElementById(`tracking-panel-${orderId}`);
+    if (!panel) return;
+
+    if (panel.style.display === 'none') {
+        panel.style.display = 'block';
+        panel.className = 'order-tracking-wrapper';
+        btn.classList.add('active');
+        
+        const steps = [
+            { level: 1, label: 'Add to Cart', done: true },
+            { level: 2, label: 'Give Address', done: true },
+            { level: 3, label: 'Confirm Payment', done: true },
+            { level: 4, label: 'Order Placed', key: 'ORDER_PLACED' },
+            { level: 5, label: 'Order Ready', key: 'ORDER_READY' },
+            { level: 6, label: 'Picked by Partner', key: 'PICKED_BY_DELIVERY_PARTNER' },
+            { level: 7, label: 'Delivered', key: 'DELIVERED' }
+        ];
+        
+        const statusLevels = {
+            'ORDER_PLACED': 4,
+            'ORDER_READY': 5,
+            'PICKED_BY_DELIVERY_PARTNER': 6,
+            'DELIVERED': 7
+        };
+        const currentLevel = statusLevels[status] || 4;
+        
+        let progressPercent = '0%';
+        if (currentLevel === 4) progressPercent = '50%';
+        else if (currentLevel === 5) progressPercent = '66.6%';
+        else if (currentLevel === 6) progressPercent = '83.3%';
+        else if (currentLevel === 7) progressPercent = '100%';
+        
+        let stepsHtml = steps.map(step => {
+            let statusClass = '';
+            let iconContent = step.level;
+            
+            if (step.done || step.level < currentLevel) {
+                statusClass = 'completed';
+                iconContent = '✓';
+            } else if (step.level === currentLevel) {
+                statusClass = 'active';
+            }
+            
+            return `
+                <div class="step-node ${statusClass}">
+                    <div class="step-icon">${iconContent}</div>
+                    <div class="step-label">${step.label}</div>
+                </div>
+            `;
+        }).join('');
+        
+        panel.innerHTML = `
+            <h4 style="font-size: 0.95rem; font-weight:700; margin-bottom:1rem; color:var(--text-primary);">Real-Time Product Tracking Lifecycle</h4>
+            <div class="tracking-stepper" style="margin-top: 1rem;">
+                <div class="stepper-progress-line" style="width: ${progressPercent}"></div>
+                ${stepsHtml}
+            </div>
+        `;
+    } else {
+        panel.style.display = 'none';
+        btn.classList.remove('active');
+    }
+}
+
+async function changeOrderStatus(orderId, newStatus) {
+    try {
+        const response = await authFetch(`/api/ecommerce/orders/${orderId}/status?status=${newStatus}`, {
+            method: 'PUT'
+        });
+        if (response.ok) {
+            showToast(`Order status updated to "${formatStatusText(newStatus)}"`);
+            loadAdminOrders();
+        } else {
+            showToast('Failed to update order status.', 'error');
+        }
+    } catch (err) {
+        console.error('Error updating order status:', err);
+        showToast('Error connecting to backend server.', 'error');
     }
 }

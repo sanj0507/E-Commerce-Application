@@ -158,6 +158,27 @@ public class EcommerceController {
                 .orElse(ResponseEntity.notFound().build());
     }
 
+    @PutMapping("/orders/{id}/status")
+    public ResponseEntity<Order> updateOrderStatus(@PathVariable Long id, @RequestParam String status) {
+        org.springframework.security.core.Authentication auth = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || !auth.isAuthenticated() || "anonymousUser".equals(auth.getPrincipal())) {
+            return ResponseEntity.status(401).build();
+        }
+
+        boolean isAdmin = auth.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
+        if (!isAdmin) {
+            return ResponseEntity.status(403).build();
+        }
+
+        try {
+            Order updatedOrder = ecommerceService.updateOrderStatus(id, status);
+            return ResponseEntity.ok(updatedOrder);
+        } catch (RuntimeException e) {
+            return ResponseEntity.notFound().build();
+        }
+    }
+
     // --- REQUEST & RESPONSE HELPER DTOs ---
 
     public static class CheckoutRequest {
